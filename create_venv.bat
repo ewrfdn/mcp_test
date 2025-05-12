@@ -28,13 +28,15 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM Activate and install requirements if they exist
-echo Virtual environment created successfully
+REM Activate the virtual environment and install requirements
+echo Activating virtual environment and installing dependencies...
+call "%PROJ_ROOT%\%VENV_NAME%\Scripts\activate.bat"
+pip install -r "%PROJ_ROOT%\requirements.txt"
+
+echo Virtual environment created and dependencies installed successfully
 echo.
-echo You can activate it by running:
+echo You can activate it again in the future by running:
 echo %PROJ_ROOT%\%VENV_NAME%\Scripts\activate.bat
 echo.
-echo If you have a requirements.txt file, you can install dependencies with:
-echo pip install -r requirements.txt
 
 exit /b 0

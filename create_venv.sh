@@ -4,12 +4,13 @@ echo "Creating Python virtual environment..."
 
 # Set variables
 VENV_NAME="venv"
-PROJ_ROOT="$(dirname "$(readlink -f "$0")")/.."
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+PROJ_ROOT="$SCRIPT_DIR"
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null; then
-    echo "Python 3 is not installed or not in PATH"
-    echo "Please install Python 3 and try again"
+    echo "Python is not installed or not in PATH"
+    echo "Please install Python and try again"
     exit 1
 fi
 
@@ -28,7 +29,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Provide instructions for activation and installing requirements
+# Activation instructions
 echo "Virtual environment created successfully"
 echo ""
 echo "You can activate it by running:"

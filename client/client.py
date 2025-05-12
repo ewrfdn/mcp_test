@@ -10,49 +10,29 @@ import os
 from openai import AzureOpenAI
 import json
 
-load_dotenv()  # 从 .env 加载环境变量
+load_dotenv()  # Load environment variables from .env
 
-endpoint = "openai-api-bocchi.openai.azure.com"
-deployment_id = "gpt-4o"
-api_version = "2025-01-01-preview"
-url = "https://openai-api-bocchi.openai.azure.com"
-
-
-client = AzureOpenAI(
-    azure_endpoint=url,
-    azure_deployment=deployment_id,
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version=api_version,
-)
-
-# response = client.chat.completions.create(
-#     model=deployment_id,  # model = "deployment_name".
-#     messages=[
-#         {"role": "system", "content": "You are a helpful assistant."},
-#         {"role": "user", "content": "Does Azure OpenAI support customer managed keys?"},
-#         {
-#             "role": "assistant",
-#             "content": "Yes, customer managed keys are supported by Azure OpenAI.",
-#         },
-#         {"role": "user", "content": "Do other Azure AI services support this too?"},
-#     ],
-# )
-
-# print(response.choices[0].message.content)
-
-
+deployment_id = os.getenv("AZURE_OPENAI_DEPLOYMENT_ID", "gpt-4o")
+api_version =os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
+endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+api_key = os.getenv("AZURE_OPENAI_API_KEY")
 class MCPClient:
     def __init__(self):
-        # 初始化会话和客户端对象
+        # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-        self.openai = client
+        self.openai = AzureOpenAI(
+            azure_endpoint=endpoint,
+            azure_deployment=deployment_id,
+            api_key=api_key,
+            api_version=api_version,
+        )
 
     async def connect_to_server(self, server_script_path: str):
         is_python = server_script_path.endswith(".py")
         is_js = server_script_path.endswith(".js")
         if not (is_python or is_js):
-            raise ValueError("服务器脚本必须是 .py 或 .js 文件")
+            raise ValueError("Server script must be a .py or .js file")
         command = "python" if is_python else "node"
         # Create a modified environment to include virtual environment path
         env = os.environ.copy()
@@ -75,11 +55,10 @@ class MCPClient:
         )
 
         await self.session.initialize()
-
-        # 列出可用工具
+        # List available tools
         response = await self.session.list_tools()
         tools = response.tools
-        print("\n已连接到服务器，可用工具：", [tool.name for tool in tools])
+        print("\nConnected to server, available tools:", [tool.name for tool in tools])
 
     async def process_query(self, query: str) -> str:
         messages = [{"role": "user", "content": query}]
@@ -119,10 +98,10 @@ class MCPClient:
                     tool_name = call.function.name
                     tool_args = json.loads(call.function.arguments)
 
-                    # 执行工具调用
+                    # Execute tool call
                     result = await self.session.call_tool(tool_name, tool_args)
                     tool_results.append({"call": tool_name, "result": result})
-                    final_text.append(f"[调用工具 {tool_name}，参数 {tool_args}]")
+                    final_text.append(f"[Tool call {tool_name}, parameters {tool_args}]")
 
                     if hasattr(content, "text") and content.text:
                         messages.append({"role": "assistant", "content": content.text})
@@ -139,12 +118,12 @@ class MCPClient:
         return "\n".join(final_text)
 
     async def chat_loop(self):
-        print("\nMCP 客户端已启动！")
-        print("输入你的问题或输入 'quit' 退出。")
+        print("\nMCP client started.")
+        print("Enter your question or type 'quit' to exit.")
 
         while True:
             try:
-                query = input("\n问题：").strip()
+                query = input("\nQuestion: ").strip()
 
                 if query.lower() == "quit":
                     break
@@ -153,10 +132,9 @@ class MCPClient:
                 print("\n" + response)
 
             except Exception as e:
-                print(f"\n错误：{str(e)}")
+                print(f"\nError: {str(e)}")
 
     async def cleanup(self):
-        """清理资源"""
         await self.exit_stack.aclose()
 
 
@@ -164,7 +142,7 @@ async def main():
 
     client = MCPClient()
     try:
-        await client.connect_to_server("D:/DEV/MCP_ICM/src/app.py")
+        await client.connect_to_server("./src/app.py")
         await client.chat_loop()
     finally:
         await client.cleanup()
